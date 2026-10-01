@@ -55,3 +55,24 @@ jobs:
         run: |
           docker push \
             $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            IMAGE="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:latest"
+
+            sudo docker pull $IMAGE
+
+            sudo docker stop todo-app || true
+            sudo docker rm todo-app || true
+
+            sudo docker run -d \
+              --name todo-app \
+              -p 3000:3000 \
+              $IMAGE
+
